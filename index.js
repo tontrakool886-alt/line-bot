@@ -228,10 +228,11 @@ if (appointments.length !== before) {
 
  // ================== WEBHOOK ==================
 app.post('/webhook', async (req, res) => {
-  const e = req.body.events?.[0];
-  if (!e) return res.sendStatus(200);
+  console.log('Webhook hit');
+  console.log(JSON.stringify(req.body, null, 2));
 
-  // ✅ กัน event ที่ไม่ใช่ข้อความ
+  const e = req.body.events?.[0];
+  if (!e) return res.sendStatus(200);  // ✅ กัน event ที่ไม่ใช่ข้อความ
   if (e.type !== 'message' || !e.message || e.message.type !== 'text') {
     return res.sendStatus(200);
   }
