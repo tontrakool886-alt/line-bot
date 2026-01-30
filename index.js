@@ -1,3 +1,4 @@
+console.log('🚀 index.js โหลดแล้ว', new Date());
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
@@ -145,6 +146,7 @@ function cleanupPastAppointments() {
 
 // ================== แจ้งเตือน + cleanup ==================
 setInterval(async () => {
+  console.log('🔥 setInterval ทำงาน', new Date());	
   const now = new Date();
   const todayKey = now.toISOString().slice(0, 10);
 
@@ -417,6 +419,21 @@ else {
 
   if (d) {
     const t = parseTime(msg) || '00:00';
+    const isToday = msg.includes('วันนี้');
+    const now = new Date();
+    const [hour, minute] = t.split(':');
+
+const appointmentDateTime = new Date(
+  d.getFullYear(),
+  d.getMonth(),
+  d.getDate(),
+  parseInt(hour),
+  parseInt(minute)
+);
+if (isToday && appointmentDateTime < now) {
+  appointmentDateTime.setDate(appointmentDateTime.getDate() + 1);
+  d.setDate(d.getDate() + 1); // สำคัญมาก ต้องขยับ d ด้วย
+}
     const phone = msg.match(/0\d{8,9}/)?.[0] || '';
 
    const exists = appointments.some(a => {
