@@ -1,3 +1,8 @@
+function getThaiNow() {
+  return new Date(
+  new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
+  );
+}
 console.log('🚀 index.js โหลดแล้ว', new Date());
 const express = require('express');
 const axios = require('axios');
@@ -132,8 +137,13 @@ async function push(text){
 // ================== ลบนัดที่ผ่านไปแล้ว ==================
 // ================== ลบนัดที่ผ่านไปแล้ว ==================
 function cleanupPastAppointments() {
-  const now = new Date();
 
+  function getThaiNow() {
+    return new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
+  );
+}
+  const now = getThaiNow();
   appointments = appointments.filter(a => {
     const d = new Date(a.dateObj);
     const [h, m] = a.time.split(':').map(Number);
@@ -145,17 +155,22 @@ function cleanupPastAppointments() {
 }
 
 // ================== แจ้งเตือน + cleanup ==================
+let lastMorningNotify = '';
+
 setInterval(async () => {
+
   console.log('🔥 setInterval ทำงาน', new Date());	
-  const now = new Date();
+  const now = getThaiNow();
+
   const todayKey = now.toISOString().slice(0, 10);
 
   // 🌅 แจ้งเตือนตอนเช้า 04:00 น.
   if (
-    now.getHours() === 4 &&
-    now.getMinutes() === 0 &&
-    lastMorningNotify !== todayKey
-  ) {
+  now.getHours() === 4 &&
+  now.getMinutes() === 0 &&
+  now.getSeconds() < 5 &&
+  lastMorningNotify !== todayKey
+) {
     lastMorningNotify = todayKey;
 
     const todayAppointments = appointments.filter(a => {
@@ -185,40 +200,37 @@ setInterval(async () => {
 
   // ================= 🔔 แจ้งเตือนก่อนนัด =================
   for (const a of appointments) {
-    const target = new Date(a.dateObj);
-    const [h, m] = a.time.split(':').map(Number);
-    target.setHours(h, m, 0, 0);
+  const target = new Date(a.dateObj);
+  const [h, m] = a.time.split(':').map(Number);
+  target.setHours(h, m, 0, 0);
 
-    const diffMin = Math.floor((target - now) / 60000);
+  const diffMin = Math.floor((target - now) / 60000);
+  if (diffMin < 0) continue;
 
-    // ⏰ ก่อน 1 ชั่วโมง
-    if (diffMin === 60 && !a.n60) {
-      a.n60 = true;
-      await push(`⏰ อีก 1 ชั่วโมง\n📝 ${a.title || '-'}`);
-      saveAppointments();
-    }
-
-    // ⏰ ก่อน 30 นาที
-    if (diffMin === 30 && !a.n30) {
-      a.n30 = true;
-      await push(`⏰ อีก 30 นาที\n📝 ${a.title || '-'}`);
-      saveAppointments();
-    }
-
-    // ⏰ ก่อน 5 นาที
-    if (diffMin === 5 && !a.n5) {
-      a.n5 = true;
-      await push(`⏰ อีก 5 นาที\n📝 ${a.title || '-'}`);
-      saveAppointments();
-    }
-
-    // 🔥 ถึงเวลา
-    if (diffMin === 0 && !a.n0) {
-      a.n0 = true;
-      await push(`⏰ ถึงเวลานัดแล้ว\n📝 ${a.title || '-'}`);
-      saveAppointments();
-    }
+  if (diffMin <= 60 && diffMin >= 59 && !a.n60) {
+    a.n60 = true;
+    await push(`⏰ อีก 1 ชั่วโมง\n📝 ${a.title || '-'}`);
+    saveAppointments();
   }
+
+  if (diffMin <= 30 && diffMin >= 29 && !a.n30) {
+    a.n30 = true;
+    await push(`⏰ อีก 30 นาที\n📝 ${a.title || '-'}`);
+    saveAppointments();
+  }
+
+  if (diffMin <= 5 && diffMin >= 4 && !a.n5) {
+    a.n5 = true;
+    await push(`⏰ อีก 5 นาที\n📝 ${a.title || '-'}`);
+    saveAppointments();
+  }
+
+  if (diffMin === 0 && !a.n0) {
+    a.n0 = true;
+    await push(`⏰ ถึงเวลานัดแล้ว\n📝 ${a.title || '-'}`);
+    saveAppointments();
+  }
+}
 
  // 🧹 ลบนัดที่ผ่านเวลาแล้ว + เซฟไฟล์
 const before = appointments.length;
@@ -357,7 +369,11 @@ else if (/^ลบนัด\s*\d+/.test(msg)) {
 // ===== เชคเวลาว่าง (แค่พิมพ์คำว่า "ว่าง") =====
 // ===== เชคเวลาว่าง (แค่พิมพ์คำว่า "ว่าง") =====
 else if (msg.includes('ว่าง')) {
-  const now = new Date();
+  function getThaiNow() {
+  return new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
+  );
+}
 
   const pad = n => n.toString().padStart(2, '0');
   const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -399,15 +415,16 @@ else if (msg.includes('ว่าง')) {
 }
 
 // ===== เชคระบบ =====
-else if (msg === 'เชคระบบ' || msg === 'เช็กระบบ') {
-  const now = new Date();
+else if (msg === 'เช็คระบบ') {
+  const now = getThaiNow();
+
   const time = now.toLocaleTimeString('th-TH', {
     hour: '2-digit',
     minute: '2-digit'
   });
 
-  reply =
-`🟢 ระบบทำงานปกติ
+  reply = `🛠 ระบบปกติ
+🟢 ระบบทำงานปกติ
 ⏰ เวลาปัจจุบัน: ${time}
 📅 นัดคงเหลือ: ${appointments.length} รายการ`;
 }
@@ -418,9 +435,10 @@ else {
   const d = parseThaiDate(msg) || parseRelativeDate(msg);
 
   if (d) {
+    const now = getThaiNow();
     const t = parseTime(msg) || '00:00';
     const isToday = msg.includes('วันนี้');
-    const now = new Date();
+    
     const [hour, minute] = t.split(':');
 
 const appointmentDateTime = new Date(
