@@ -155,7 +155,6 @@ function cleanupPastAppointments() {
 }
 
 // ================== แจ้งเตือน + cleanup ==================
-let lastMorningNotify = '';
 
 setInterval(async () => {
 
