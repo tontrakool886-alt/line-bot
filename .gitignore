@@ -2,3 +2,5 @@ node_modules/
 .env
 ngrok.exe
 google-key.json
+data.json
+userIds.json
