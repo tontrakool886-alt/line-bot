@@ -484,38 +484,50 @@ if (appointments.length !== before) {
 
 // ================== WEBHOOK ==================
 
-app.post('/webhook', async (req, res) => {  
+app.post('/webhook', async (req, res) => {
+  // ✅ ตอบ 200 ให้ LINE ทันที
   res.sendStatus(200);
-  console.log('Webhook hit');
 
+  console.log('Webhook hit');
   console.log(JSON.stringify(req.body, null, 2));
 
-
-
   const e = req.body.events?.[0];
-
-  if (!e) return;  // ✅ กัน event ที่ไม่ใช่ข้อความ
+  if (!e) return;
 
   if (e.type !== 'message' || !e.message || e.message.type !== 'text') {
     return;
   }
 
+  const replyToken = e.replyToken;
+  const text = e.message.text;
 
+  // ✅ reply ทันที (สำคัญที่สุด)
+  await axios.post(
+    'https://api.line.me/v2/bot/message/reply',
+    {
+      replyToken,
+      messages: [
+        {
+          type: 'text',
+          text: `รับแล้ว: ${text}`
+        }
+      ]
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+      }
+    }
+  );
 
+  // 👇 logic อื่นค่อยทำทีหลัง
   const userId = e.source?.userId;
-
-
-
   if (userId && !userIds.has(userId)) {
-
     userIds.add(userId);
-
-    console.log('➕ เพิ่ม userId ใหม่:', userId);
-
-    saveUserIds(); // 💾 เซฟทุกครั้งที่มีคนทัก
-
+    saveUserIds();
   }
-
+});
 
 
   const msg = e.message.text.trim();
