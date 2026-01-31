@@ -264,23 +264,30 @@ function detectPhoneType(phone){
 // ================== PUSH ==================
 
 async function push(text){
-
-  for(const id of userIds){
-
-    await axios.post(
-
-      'https://api.line.me/v2/bot/message/push',
-
-      { to:id, messages:[{type:'text',text}]},
-
-      { headers:{Authorization:`Bearer ${CHANNEL_ACCESS_TOKEN}`} }
-
-    );
-
+  for (const id of userIds) {
+    try {
+      await axios.post(
+        'https://api.line.me/v2/bot/message/push',
+        {
+          to: id,
+          messages: [{ type: 'text', text }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+          }
+        }
+      );
+    } catch (err) {
+      console.error(
+        '❌ PUSH ERROR:',
+        id,
+        err.response?.data || err.message
+      );
+    }
   }
-
 }
-
 
 
 // ================== ลบนัดที่ผ่านไปแล้ว ==================
@@ -477,8 +484,8 @@ if (appointments.length !== before) {
 
 // ================== WEBHOOK ==================
 
-app.post('/webhook', async (req, res) => {
-
+app.post('/webhook', async (req, res) => {  
+  res.sendStatus(200);
   console.log('Webhook hit');
 
   console.log(JSON.stringify(req.body, null, 2));
@@ -487,12 +494,10 @@ app.post('/webhook', async (req, res) => {
 
   const e = req.body.events?.[0];
 
-  if (!e) return res.sendStatus(200);  // ✅ กัน event ที่ไม่ใช่ข้อความ
+  if (!e) return;  // ✅ กัน event ที่ไม่ใช่ข้อความ
 
   if (e.type !== 'message' || !e.message || e.message.type !== 'text') {
-
-    return res.sendStatus(200);
-
+    return;
   }
 
 
