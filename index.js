@@ -52,56 +52,40 @@ console.error('❌ PUSH ERROR:', err.response?.data || err.message);
 
 // ================== WEBHOOK ==================
 app.post('/webhook', (req, res) => {
-// ✅ ตอบ LINE ทันที กัน timeout
-res.sendStatus(200);
+  // 1️⃣ ตอบ LINE ทันที
+  res.sendStatus(200);
 
-// ✅ ทำงานหนักใน background
-(async () => {
-try {
-console.log('Webhook hit');
-console.log(JSON.stringify(req.body, null, 2));
+  // 2️⃣ ทำงานต่อแบบไม่บล็อก
+  (async () => {
+    try {
+      const e = req.body.events?.[0];
+      if (!e) return;
+      if (e.type !== 'message' || !e.message || e.message.type !== 'text') return;
 
-const e = req.body.events?.[0];
-if (!e) return;
-if (e.type !== 'message') return;
-if (!e.message || e.message.type !== 'text') return;
+      const replyToken = e.replyToken;
+      const text = e.message.text;
 
-const userId = e.source?.userId;
-if (userId && !userIds.has(userId)) {
-userIds.add(userId);
-saveUserIds();
-console.log('➕ เพิ่ม userId:', userId);
-}
+      await axios.post(
+        'https://api.line.me/v2/bot/message/reply',
+        {
+          replyToken,
+          messages: [
+            { type: 'text', text: `รับแล้ว: ${text}` }
+          ]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+          }
+        }
+      );
 
-const text = e.message.text.trim();
-let reply = 'รับแล้วครับลูกพี่ ✅';
-
-if (text.includes('สวัสดี')) {
-reply = '👋 สวัสดีครับลูกพี่';
-} else if (text.includes('เช็คระบบ')) {
-reply = '🟢 ระบบทำงานปกติ';
-}
-
-// 🔁 reply กลับ LINE
-await axios.post(
-'https://api.line.me/v2/bot/message/reply',
-{
-replyToken: e.replyToken,
-messages: [{ type: 'text', text: reply }]
-},
-{
-headers: {
-'Content-Type': 'application/json',
-Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
-}
-}
-);
-
-console.log('📨 reply ส่งแล้ว');
-} catch (err) {
-console.error('❌ WEBHOOK ERROR:', err.response?.data || err.message);
-}
-})();
+      console.log('✅ reply success');
+    } catch (err) {
+      console.error('❌ reply error:', err.response?.data || err.message);
+    }
+  })();
 });
 
 // ================== START SERVER ==================
