@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 function getThaiNow() {
   return new Date(
     new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
@@ -7,9 +9,41 @@ console.log('🚀 index.js โหลดแล้ว', new Date());
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
+const { google } = require('googleapis');
+
 let userIds = new Set();
 const USER_IDS_FILE = './userIds.json';
 
+// ================== GOOGLE SHEET ==================
+const SHEET_ID = '1UQjPgTe99-ot2rQ_JjIcqi4f1KydW4ln6P-7136A028';
+const SHEET_NAME = 'ชีต1'; 
+
+const auth = new google.auth.GoogleAuth({
+  keyFile: 'google-key.json',
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+const sheets = google.sheets({ version: 'v4', auth });
+
+async function addAppointmentToSheet(a) {
+  // บันทึกข้อมูลนัดลง Google Sheet เท่านั้น (ไม่ส่ง reply ที่นี่)
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A:G`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [[
+        a.id,
+        a.dateObj,
+        a.time,
+        a.title || '',
+        a.phone || '',
+        a.phoneType || '',
+        new Date().toISOString()
+      ]]
+    }
+  });
+}
 // โหลด userIds จากไฟล์
 if (fs.existsSync(USER_IDS_FILE)) {
   try {
@@ -30,7 +64,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const CHANNEL_ACCESS_TOKEN = process.env.LINE_TOKEN;
+const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 
 // ================== DATA ==================
 
@@ -133,7 +167,7 @@ async function push(text){
       'https://api.line.me/v2/bot/message/push',
       { to:id, messages:[{type:'text',text}]},
       { headers:{Authorization:`Bearer ${CHANNEL_ACCESS_TOKEN}`} }
-    );
+);
   }
 }
 
@@ -466,18 +500,24 @@ if (isToday && appointmentDateTime < now) {
         .replace(/(วันนี้|\d{1,2}[:.]\d{2}(\s?น\.)?|พรุ่งนี้|มะรืน|สัปดาห์หน้า|เดือนหน้า|\d{1,2}\s?(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)\s?\d{2})/g, '')
         .trim();
 
-      appointments.push({
-  id: Date.now(), // ⭐ สำคัญ
+      const newAppointment = {
+  id: Date.now(),
   dateObj: d.toISOString(),
   time: t,
   title,
   phone,
   phoneType: detectPhoneType(phone)
-});
+};
 
-      saveAppointments();
+appointments.push(newAppointment);
+saveAppointments();
+try {
+await addAppointmentToSheet(newAppointment);
+} catch (err) {
+console.error('❌ บันทึก Google Sheet ไม่สำเร็จ', err?.response?.data || err);
+}
 
-      reply = `📌 เพิ่มนัดแล้วลูกพี่!!
+     reply = `📌 เพิ่มนัดแล้วลูกพี่!!
 📅 ${formatThaiDate(d)}
 ⏰ ${t} น.
 📝 ${title || '-'}
@@ -500,7 +540,7 @@ if (isToday && appointmentDateTime < now) {
   {
     headers: {
       'Content-Type': 'application/json',
-     Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+      Authorization: `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
     }
   }
 );

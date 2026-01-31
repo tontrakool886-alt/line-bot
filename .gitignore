@@ -1,4 +1,4 @@
 node_modules/
 .env
 ngrok.exe
-*.json
+google-key.json
