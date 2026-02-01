@@ -73,7 +73,7 @@ const stressJokes = [
 const tiredReply = [
   'พักแป๊บเด้อ เดี๋ยวค่อยลุยต่อ!! 😴',
   'เซาซะติหล่ะ!! 😂'
-  'มันยังไงทำไมไม่ไปนอนว่ะ 😅'
+ 
 ];
 
 const hungryReply = [
