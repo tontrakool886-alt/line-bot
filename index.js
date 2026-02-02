@@ -194,6 +194,7 @@ let lastMorningNotify = null;
 
 setInterval(async () => {
   const now = getThaiNow();
+  console.log('[INTERVAL]', now.toString());	
   const todayKey = now.toISOString().slice(0, 10);
 
   // 🧹 ลบนัดที่ผ่านเวลาแล้ว
