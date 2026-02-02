@@ -194,16 +194,32 @@ let lastMorningNotify = null;
 
 setInterval(async () => {
   const now = getThaiNow();
-  console.log('[INTERVAL]', now.toString());	
+
+  const thaiHour = Number(
+    now.toLocaleString('en-US', {
+      hour: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Bangkok'
+    })
+  );
+
+  const thaiMinute = Number(
+    now.toLocaleString('en-US', {
+      minute: '2-digit',
+      timeZone: 'Asia/Bangkok'
+    })
+  );
+
+  console.log('[INTERVAL]', now.toString());
   const todayKey = now.toISOString().slice(0, 10);
 
-  // 🧹 ลบนัดที่ผ่านเวลาแล้ว
+  // 🧹 ลบนัดเก่า
   cleanupPastAppointments();
 
   // 🌅 สรุปนัด 04:00
   if (
-    now.getHours() === 4 &&
-    now.getMinutes() === 0 &&
+    thaiHour === 4 &&
+    thaiMinute === 0 &&
     now.getSeconds() < 5 &&
     lastMorningNotify !== todayKey
   ) {
@@ -212,9 +228,11 @@ setInterval(async () => {
     const todayAppointments = appointments
       .filter(a => {
         const d = new Date(a.dateObj);
-        return d.getDate() === now.getDate() &&
+        return (
+          d.getDate() === now.getDate() &&
           d.getMonth() === now.getMonth() &&
-          d.getFullYear() === now.getFullYear();
+          d.getFullYear() === now.getFullYear()
+        );
       })
       .sort((a, b) => a.time.localeCompare(b.time));
 
@@ -224,13 +242,15 @@ setInterval(async () => {
       text += 'วันนี้ไม่มีนัดครับ 😊';
     } else {
       todayAppointments.forEach((a, i) => {
-        text += `\n${i + 1}. ⏰ ${a.time} น. 📝 ${a.title || '-'}`;
+        text += `\n${i + 1}. ⏰ ${a.time} 📝 ${a.title || '-'}`;
       });
     }
 
+    // ✅ ส่ง LINE ตรงนี้เท่านั้น
     await push(text);
-    console.log('🌅 แจ้งเตือนตี 4 แล้ว');
+    console.log('📣 แจ้งเตือนสรุปนัดตี 4 แล้ว');
   }
+}, 60_000); // ตรวจทุก 1 นาที
 
   // 🔔 แจ้งเตือน 60/30/5/0 นาที
   for (const a of appointments) {
