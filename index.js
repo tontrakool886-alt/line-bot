@@ -252,40 +252,41 @@ setInterval(async () => {
   }
 }, 60_000); // ตรวจทุก 1 นาที
 
-  // 🔔 แจ้งเตือน 60/30/5/0 นาที
+ setInterval(async () => {
+  const now = getThaiNow();
+
+  // 🔔 แจ้งเตือน 60/30/5 นาที
   for (const a of appointments) {
     const target = appointmentDateTime(a);
     const diffMin = Math.floor((target - now) / 60000);
     if (diffMin < 0) continue;
 
-    // เก็บ flag กันยิงซ้ำ
     a.n60 = a.n60 || false;
     a.n30 = a.n30 || false;
-    a.n5 = a.n5 || false;
-    a.n0 = a.n0 || false;
+    a.n5  = a.n5  || false;
+    a.n0  = a.n0  || false;
 
     if (diffMin <= 60 && diffMin >= 59 && !a.n60) {
       a.n60 = true;
-      await push(`⏰ อีก 1 ชั่วโมง\n📝 ${a.title || '-'}`);
-      saveAppointments();
+      await push(`⏰ อีก 1 ชม. ${a.title || '-'}`);
     }
+
     if (diffMin <= 30 && diffMin >= 29 && !a.n30) {
       a.n30 = true;
-      await push(`⏰ อีก 30 นาที\n📝 ${a.title || '-'}`);
-      saveAppointments();
+      await push(`⏰ อีก 30 นาที ${a.title || '-'}`);
     }
+
     if (diffMin <= 5 && diffMin >= 4 && !a.n5) {
       a.n5 = true;
-      await push(`⏰ อีก 5 นาที\n📝 ${a.title || '-'}`);
-      saveAppointments();
+      await push(`⏰ อีก 5 นาที ${a.title || '-'}`);
     }
-    if (diffMin === 0 && !a.n0) {
+
+    if (diffMin <= 0 && !a.n0) {
       a.n0 = true;
-      await push(`⏰ ถึงเวลานัดแล้ว\n📝 ${a.title || '-'}`);
-      saveAppointments();
+      await push(`⏰ ถึงเวลาแล้ว ${a.title || '-'}`);
     }
   }
-}, 60000);
+}, 60_000);
 
 // ================== WEBHOOK ==================
 app.post('/webhook', async (req, res) => {
