@@ -490,5 +490,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.listen(PORT, () => {
+  const now = getThaiNow();
+  console.log('🕒 Thai now =', now.toString());
   console.log(`🤵 December พร้อมรับใช้ลูกพี่ ที่พอร์ต ${PORT}`);
 });
